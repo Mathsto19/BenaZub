@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import base64
+import ctypes
 import csv
 import json
 import os
 import random
 import re
 import shutil
+import sys
 import time
 import traceback
 import zipfile
@@ -60,7 +62,11 @@ from PyQt6.QtWidgets import (
 )
 
 
-RAIZ = Path(__file__).resolve().parent
+if getattr(sys, "frozen", False):
+    RAIZ = Path(sys.executable).resolve().parent
+else:
+    RAIZ = Path(__file__).resolve().parent
+PASTA_RECURSOS = Path(getattr(sys, "_MEIPASS", RAIZ))
 PASTA_APP = RAIZ / "BenaZub"
 PASTA_LEGADA = RAIZ / "app_validador_auto_rotulos"
 PASTA_UI = PASTA_APP / "ui"
@@ -146,6 +152,47 @@ def garantir_pastas() -> None:
         caminho = PASTA_UI / nome
         if not caminho.exists():
             caminho.write_text(conteudo, encoding="utf-8")
+
+
+def caminho_icone_aplicativo() -> Path | None:
+    candidatos = [
+        RAIZ / "BenaZub_build.ico",
+        RAIZ / "BenaZub.ico",
+        PASTA_RECURSOS / "BenaZub_build.ico",
+        PASTA_RECURSOS / "BenaZub.ico",
+    ]
+
+    for caminho in candidatos:
+        if caminho.exists():
+            return caminho
+
+    return None
+
+
+def configurar_app_user_model_id() -> None:
+    if os.name != "nt":
+        return
+
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("UTFPR.BenaZub.1.0")
+    except Exception:
+        pass
+
+
+def aplicar_icone_aplicativo(app: QApplication | None = None, janela: QWidget | None = None) -> None:
+    caminho = caminho_icone_aplicativo()
+    if caminho is None:
+        return
+
+    icone = QIcon(str(caminho))
+    if icone.isNull():
+        return
+
+    if app is not None:
+        app.setWindowIcon(icone)
+
+    if janela is not None:
+        janela.setWindowIcon(icone)
 
 
 def ler_json(caminho: Path, padrao):
@@ -1936,6 +1983,14 @@ def escolher_tela_inicial(app: QApplication):
     if not telas:
         return app.primaryScreen()
 
+    # Abre na tela onde o cursor do mouse está atualmente
+    from PyQt6.QtGui import QCursor
+    pos_mouse = QCursor.pos()
+    for tela in telas:
+        if tela.geometry().contains(pos_mouse):
+            return tela
+
+    # Fallback: índice fixo ou tela primária
     if len(telas) > TELA_INICIAL_INDICE:
         return telas[TELA_INICIAL_INDICE]
 
@@ -3616,16 +3671,24 @@ class JanelaPrincipal(QMainWindow):
 
 
 def main() -> None:
-    app = QApplication([])
+    configurar_app_user_model_id()
+
+    app = QApplication(sys.argv)
     app.setApplicationName("BenaZub")
+    app.setOrganizationName("UTFPR")
+
     fonte = QFont("Segoe UI", 9)
     app.setFont(fonte)
 
+    aplicar_icone_aplicativo(app=app)
+
     janela = JanelaPrincipal()
+    aplicar_icone_aplicativo(janela=janela)
+
     tela = escolher_tela_inicial(app)
     mostrar_fullscreen_na_tela(janela, tela)
 
-    app.exec()
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":

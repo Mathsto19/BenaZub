@@ -375,6 +375,6 @@ Este projeto foi desenvolvido na UTFPR com apoio do projeto de pesquisa em biome
 
 ---
 
-## Licenca
+## Licença
 
 Distribuicao autorizada apenas para fins academicos, cientificos e de pesquisa. Uso comercial ou redistribuicao sem permissao nao e permitido.

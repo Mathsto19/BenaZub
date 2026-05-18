@@ -11,6 +11,7 @@ import random
 import re
 import shutil
 import sys
+import threading
 import time
 import traceback
 import zipfile
@@ -152,6 +153,46 @@ def garantir_pastas() -> None:
         caminho = PASTA_UI / nome
         if not caminho.exists():
             caminho.write_text(conteudo, encoding="utf-8")
+
+
+def registrar_erro_aplicacao(titulo: str, detalhe: str) -> None:
+    try:
+        PASTA_SAIDA.mkdir(parents=True, exist_ok=True)
+        caminho = PASTA_SAIDA / "erros_benazub.log"
+        with caminho.open("a", encoding="utf-8") as arquivo:
+            arquivo.write(f"\n[{agora()}] {titulo}\n")
+            arquivo.write(detalhe.rstrip())
+            arquivo.write("\n")
+    except Exception:
+        try:
+            caminho_fallback = RAIZ / "erros_benazub.log"
+            with caminho_fallback.open("a", encoding="utf-8") as arquivo:
+                arquivo.write(f"\n[{agora()}] {titulo}\n")
+                arquivo.write(detalhe.rstrip())
+                arquivo.write("\n")
+        except Exception:
+            pass
+
+
+def tratar_excecao_nao_tratada(tipo, valor, tb) -> None:
+    detalhe = "".join(traceback.format_exception(tipo, valor, tb))
+    registrar_erro_aplicacao("Exceção não tratada", detalhe)
+
+    excecao_padrao = getattr(sys, "__excepthook__", None)
+    if excecao_padrao is not None:
+        excecao_padrao(tipo, valor, tb)
+
+
+def tratar_excecao_thread(args) -> None:
+    detalhe = "".join(traceback.format_exception(args.exc_type, args.exc_value, args.exc_traceback))
+    registrar_erro_aplicacao(f"Exceção não tratada em thread: {args.thread.name}", detalhe)
+
+
+def instalar_tratamento_erros() -> None:
+    sys.excepthook = tratar_excecao_nao_tratada
+
+    if hasattr(threading, "excepthook"):
+        threading.excepthook = tratar_excecao_thread
 
 
 def caminho_icone_aplicativo() -> Path | None:
@@ -1648,8 +1689,10 @@ class TarefaLonga(QThread):
             self.terminou.emit(False, str(erro))
             return
         except Exception:
+            detalhe = traceback.format_exc()
+            registrar_erro_aplicacao("Erro durante tarefa longa", detalhe)
             self.log.emit("\nErro durante a execução:\n")
-            self.log.emit(traceback.format_exc())
+            self.log.emit(detalhe)
             self.terminou.emit(False, "A tarefa terminou com erro.")
             return
 
@@ -2012,6 +2055,28 @@ def mostrar_fullscreen_na_tela(janela: QMainWindow, tela) -> None:
         handle.setScreen(tela)
 
     janela.showFullScreen()
+
+
+class BenaZubApplication(QApplication):
+    def notify(self, receptor, evento) -> bool:
+        try:
+            return super().notify(receptor, evento)
+        except Exception:
+            detalhe = traceback.format_exc()
+            registrar_erro_aplicacao("Erro no evento da interface", detalhe)
+
+            try:
+                for janela in self.topLevelWidgets():
+                    if hasattr(janela, "_log"):
+                        janela._log("\nErro na interface. O detalhe foi salvo em BenaZub\\saida\\erros_benazub.log.\n")
+                        janela._log(detalhe)
+                    if hasattr(janela, "_rodando"):
+                        janela._rodando(False, "Verifique os logs")
+            except Exception:
+                pass
+
+            return False
+
 
 class JanelaPrincipal(QMainWindow):
     def __init__(self) -> None:
@@ -3252,6 +3317,14 @@ class JanelaPrincipal(QMainWindow):
         caminho.write_text(self.log.toPlainText(), encoding="utf-8")
         self._log(f"Logs salvos: {caminho}\n")
 
+    def _salvar_logs_automatico(self) -> None:
+        try:
+            PASTA_SAIDA.mkdir(parents=True, exist_ok=True)
+            caminho = PASTA_SAIDA / "logs_ultima_execucao.txt"
+            caminho.write_text(self.log.toPlainText(), encoding="utf-8")
+        except Exception:
+            registrar_erro_aplicacao("Falha ao salvar logs automáticos", traceback.format_exc())
+
     def _log(self, texto: str) -> None:
         formato_texto = QTextCharFormat()
         formato_texto.setForeground(QColor("#f4f6fb"))
@@ -3311,8 +3384,17 @@ class JanelaPrincipal(QMainWindow):
     def _tarefa_finalizada(self, sucesso: bool, mensagem: str) -> None:
         self._rodando(False, "Pronto" if sucesso else "Verifique os logs")
         self._log(f"\n{mensagem}\n")
-        self._carregar_dados()
-        self._atualizar_estado()
+        try:
+            self._carregar_dados()
+            self._atualizar_estado()
+        except Exception:
+            detalhe = traceback.format_exc()
+            registrar_erro_aplicacao("Erro ao atualizar interface após tarefa", detalhe)
+            self._rodando(False, "Verifique os logs")
+            self._log("\nErro ao atualizar a tela depois da tarefa. O aplicativo continuará aberto.\n")
+            self._log(detalhe)
+        finally:
+            self._salvar_logs_automatico()
 
     def _parar_tarefa(self) -> None:
         if self.tarefa is not None and self.tarefa.isRunning():
@@ -3671,9 +3753,10 @@ class JanelaPrincipal(QMainWindow):
 
 
 def main() -> None:
+    instalar_tratamento_erros()
     configurar_app_user_model_id()
 
-    app = QApplication(sys.argv)
+    app = BenaZubApplication(sys.argv)
     app.setApplicationName("BenaZub")
     app.setOrganizationName("UTFPR")
 

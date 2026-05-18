@@ -1,0 +1,232 @@
+﻿BENAZUB - Software para Predicao, Revisao e Treinamento Incremental de Rotulos
+
+Bem-vindo ao BenaZub
+
+O BenaZub e um software desenvolvido para gerar sugestoes automaticas de rotulos
+em imagens biometricas, revisar predicoes e atualizar incrementalmente um modelo
+de classificacao multirrotulo.
+
+O sistema foi desenvolvido para uso local em Windows, com interface grafica em
+PyQt6. Os dados sao processados no proprio computador, sem envio para servidor
+externo.
+
+
+Como Utilizar o BenaZub
+
+1. Inicializacao do Software
+
+Execute o arquivo BenaZub.exe na pasta do aplicativo.
+
+Caso o antivirus ou o Windows bloqueie a execucao, clique em "Mais informacoes"
+e depois em "Executar assim mesmo".
+
+Ao iniciar, o BenaZub abre uma interface grafica local em tela cheia.
+
+Se a versao recebida nao tiver BenaZub.exe, use a execucao pelo codigo fonte:
+
+cd "..\Codigo Fonte"
+python -m pip install -r requirements.txt
+python BenaZub.py
+
+
+2. Estrutura Necessaria
+
+A pasta BenaZub deve ficar no mesmo diretorio do executavel.
+
+Estrutura principal:
+
+BenaZub\entrada\imagens
+BenaZub\entrada\rotulos
+BenaZub\saida
+BenaZub\ui
+
+Nao apague a pasta BenaZub, pois ela e utilizada pelo programa durante a
+execucao.
+
+
+3. Carregamento das Imagens
+
+No painel "Base de revisao", selecione a pasta ou o arquivo ZIP de imagens.
+
+Tambem e possivel colocar previamente os arquivos em:
+
+BenaZub\entrada\imagens
+
+O sistema aceita imagens nos formatos:
+- .png
+- .jpg
+- .jpeg
+- .bmp
+- .tif
+- .tiff
+- .webp
+
+
+4. Carregamento de Rotulos Existentes
+
+O campo "Rotulos ja existentes" e opcional.
+
+Quando existir um arquivo com rotulos anteriores, selecione o arquivo JSON ou
+CSV correspondente. Esse arquivo pode ser usado para ignorar imagens ja
+rotuladas ou para preparar a base de treinamento.
+
+Local recomendado:
+
+BenaZub\entrada\rotulos
+
+
+5. Geracao de Predicoes
+
+Para gerar sugestoes automaticas:
+
+1. Selecione a pasta ou ZIP de imagens.
+2. Selecione o arquivo de rotulos existentes, se houver.
+3. Marque "Recalcular predicoes" se quiser forcar uma nova execucao.
+4. Clique em "Gerar predicoes com modelo atual".
+
+As predicoes serao exibidas na aba "Predicoes".
+
+
+6. Revisao das Predicoes
+
+Na aba "Predicoes", o usuario pode visualizar a imagem atual e os rotulos
+sugeridos pelo modelo.
+
+Recursos disponiveis:
+- Navegar para imagem anterior ou proxima.
+- Alternar entre Camada 1 e Camada 2.
+- Visualizar probabilidades por rotulo.
+- Conferir os limiares usados pelo modelo.
+- Salvar revisoes.
+
+
+7. Treinamento Incremental
+
+O BenaZub permite atualizar o modelo com dados confirmados ou importados.
+
+No painel "Treino", ajuste:
+- Epocas.
+- Paciencia.
+- Taxa de aprendizado.
+- Fracao de validacao.
+
+Acoes principais:
+- "Atualizar modelo": treina e calibra o modelo incremental.
+- "Fluxo completo: treinar e gerar": treina, calibra e gera predicoes em sequencia.
+- "Gerar predicoes com modelo atual": usa o modelo ativo para gerar predicoes.
+
+Durante novos ciclos, o software cria backups automaticamente em:
+
+BenaZub\saida\backups_ciclo
+
+
+8. Pacotes BENAPRO
+
+O BenaZub pode importar automaticamente pacotes BENAPRO quando a opcao
+"Importar pacotes BENAPRO" estiver marcada.
+
+Formato esperado:
+
+BenaZub\nome-do-pacote\nome-do-pacote.zip
+BenaZub\nome-do-pacote\BENAPRO\resultado.json
+
+Ao importar um pacote BENAPRO:
+- imagens ja anotadas entram como base rotulada para treino;
+- imagens nao anotadas podem entrar na fila de predicao e revisao.
+
+Para impedir essa importacao, desmarque "Importar pacotes BENAPRO" ou mova os
+pacotes para fora da pasta BenaZub.
+
+
+9. Rotulos Reconhecidos
+
+Rotulos padrao disponiveis:
+- Digital Clara
+- Digital Escura
+- Dedo Fora Da Area
+- Fiapos
+- Fora de Foco
+- Manchas
+- Scanner Sujo
+- Segmentacao Boa
+- Sem Padrao Visivel
+
+O software aplica regras automaticas de consistencia entre alguns rotulos. Por
+exemplo, "Segmentacao Boa" nao deve permanecer junto com outros erros detectados.
+
+
+10. Arquivos Gerados
+
+Os resultados sao salvos em:
+
+BenaZub\saida
+
+Arquivos principais:
+- predicoes_auto.json
+- predicoes_auto.csv
+- revisoes.json
+- rotulos_confirmados.csv
+- rotulos_corrigir.csv
+
+Arquivos de modelo:
+- modelo_incremental\melhor_modelo.pt
+- modelo_incremental\limiares.json
+- modelo_incremental\historico_treinamento.csv
+- modelo_incremental\resumo_treinamento.json
+- modelo_incremental\metricas_limiares.csv
+
+Pastas auxiliares:
+- backups_ciclo
+- treino_base_atual
+- zips_extraidos
+
+
+11. Navegacao e Atalhos
+
+Atalhos principais:
+- Seta direita: proxima imagem.
+- Seta esquerda: imagem anterior.
+- 1: Camada 1.
+- 2: Camada 2.
+- F5: atualizar estado da tela.
+- Roda do mouse: aumentar ou diminuir zoom.
+- Duplo clique na imagem: resetar zoom.
+
+
+Especificacoes Tecnicas
+
+Requisitos minimos:
+- Sistema operacional: Windows 10 ou superior.
+- Memoria RAM: 8 GB recomendados.
+- Armazenamento suficiente para pacotes de imagens, arquivos extraidos, modelos
+  e backups.
+
+Para uso pelo codigo fonte:
+- Python 3.10 ou superior.
+- PyQt6.
+- NumPy.
+- Pillow.
+- PyTorch.
+- TorchVision.
+
+
+Contato
+
+Duvidas, sugestoes ou suporte tecnico:
+
+E-mail: matheusaugustooliveira@alunos.utfpr.edu.br
+
+
+Licenca
+
+Este software e distribuido exclusivamente para fins academicos, cientificos e
+de pesquisa.
+
+E proibido o uso comercial ou redistribuicao sem autorizacao expressa dos
+autores.
+
+
+Agradecimentos
+
+Desenvolvido com apoio da Universidade Tecnologica Federal do Parana (UTFPR),
+em parceria com o projeto de pesquisa em biometria neonatal.

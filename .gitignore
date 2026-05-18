@@ -1,0 +1,24 @@
+﻿__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.venv/
+venv/
+env/
+
+build/
+dist/
+*.spec
+
+*.log
+
+Codigo Fonte/BenaZub/saida/backups_ciclo/*
+Codigo Fonte/BenaZub/saida/modelo_incremental/*
+Codigo Fonte/BenaZub/saida/treino_base_atual/imagens_rotuladas/*
+Codigo Fonte/BenaZub/saida/zips_extraidos/*
+
+!Codigo Fonte/BenaZub/saida/backups_ciclo/.gitkeep
+!Codigo Fonte/BenaZub/saida/modelo_incremental/.gitkeep
+!Codigo Fonte/BenaZub/saida/treino_base_atual/imagens_rotuladas/.gitkeep
+!Codigo Fonte/BenaZub/saida/zips_extraidos/.gitkeep
